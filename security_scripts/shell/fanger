@@ -1,0 +1,91 @@
+#!/usr/bin/env bash
+# security_scripts/shell/fanger
+
+# Help function
+help() {
+        echo "Usage: fanger [options] [value]"
+        echo "defang or refang text with url's, email addresses, ip addresses, and domain names."
+        echo
+        echo "Options:"
+        echo "  -o | --output       output file"
+        echo "  -i | --interactive  interactive mode"
+        echo "  -h | --help         show this help message"
+}
+
+# Short help function
+shorthelp() {
+        echo "Usage: fanger [options] [value]"
+        echo "Try 'fanger --help' for more information."
+        exit 1
+}
+
+# Global variables
+INTERACTIVE=0
+OUTPUT=
+
+# Parse flags and positional arguments
+while [ "$1" != "" ]; do
+        case $1 in
+        -o | --output)
+                OUTPUT="$2"
+                shift
+                ;;
+        -i | --interactive)
+                INTERACTIVE=1
+                ;;
+        -h | --help)
+                help
+                ;;
+        * )
+                break
+        esac
+        shift
+done
+
+# Normalize positional parameters
+set -- $(echo "$@" | tr -s ' ')
+
+# Unset value
+unset value
+
+# Check if interactive mode is enabled, setting the
+# input value as the positional parameter
+if [ $INTERACTIVE -eq 1 ]; then
+        echo "When you are done, press Ctrl+D to exit."
+        # Read from stdin and it to value variable
+        value="$(</dev/stdin)"
+fi
+
+# If value is not empty, then handle remaining
+# input methods.
+if [ -n "$value" ]; then
+        # If value is a file, set it as the value
+        if [ -f "$value" ]; then
+                value="$(cat "$value")"
+        # If value is a pipe, set it as the value
+        elif [ -p /dev/stdin ]; then
+                value="$(cat -)"
+        fi
+fi
+
+# If value is empty, show short help
+if [ -z "$value" ]; then
+        shorthelp
+fi
+
+# Main function called to perform action
+main() {
+        results=
+        # Do something
+        # print output in green
+        printf "\e[32m%s\e[0m\n" "$results"
+}
+
+# If output is not empty, then save the output to the file
+if [ -n "$OUTPUT" ]; then
+        # Save output to file
+        main "$@" > "$OUTPUT"
+else
+        # Print output to terminal
+        main "$@"
+fi

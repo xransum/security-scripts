@@ -1,0 +1,147 @@
+#!/usr/bin/env bash
+# security_scripts/shell/emailparse
+
+# Function for handling stderr output
+echoerr() {
+    # This should anything passed to it,
+    # excluding args (-n) that echo would 
+    # normally swallow
+    if [ $QUIET -eq 0 ]; then
+        printf "%s\n" "$*" >&2
+    fi
+}
+
+# Function for handling verbose stdout
+# output
+echodebug() {
+    # This should anything passed to it,
+    # excluding args (-n) that echo would 
+    # normally swallow
+    if [ $VERBOSE -eq 1 ]; then
+        printf "* %s\n" "$*" # >&1
+    fi
+}
+
+# Help function
+help() {
+    echo "Usage: emailparse [options] [value]"
+    echo "parse headers or body of email"
+    echo
+    echo "Options:"
+    echo "  -o | --output       output file"
+    echo "  -i | --interactive  interactive mode"
+    echo "  -q | --quiet        quiet mode"
+    echo "  -v | --verbose      verbose mode"
+    echo "  -h | --help         show this help message"
+    exit 1
+}
+
+# Short help function
+shorthelp() {
+    echo "Try 'emailparse --help' for more information."
+    exit 1
+}
+
+# Global variables
+QUIET=0
+VERBOSE=0
+INTERACTIVE=0
+OUTPUT=
+
+# Parse for all flags and flag values first
+# include flags trailing after positional
+# arguments
+POSITIONALS=()
+while [ "$1" != "" ]; do
+    case $1 in
+        -o | --output)
+            OUTPUT="$2"
+            shift
+            ;;
+        -i | --interactive)
+            INTERACTIVE=1
+            ;;
+        -q | --quiet)
+            QUIET=1
+            ;;
+        -v | --verbose)
+            VERBOSE=1
+            ;;
+        -h | --help)
+            help
+            ;;
+        -* )
+            echoerr "Unknown flag: $1"
+            shorthelp
+            ;;
+        * )
+            POSITIONALS+=("$1")
+            ;;
+    esac
+    shift
+done
+
+# Normalize positional parameters
+set -- "${POSITIONALS[@]}"
+
+# Unset value
+unset value
+
+# Output verbosity state
+if [ $VERBOSE -eq 1 ]; then
+    echodebug "Verbose mode enabled."
+fi
+
+# Check if interactive mode is enabled, setting the
+# input value as the positional parameter
+if [ $INTERACTIVE -eq 1 ]; then
+    echodebug "Interactive mode enabled."
+    echo "When you are done, press Ctrl+D to exit."
+    # Read from stdin and it to value variable
+    value="$(</dev/stdin)"
+else
+    echodebug "Interactive mode disabled."
+fi
+
+# If value is not empty, then handle remaining
+# input methods.
+if [ -z "$value" ]; then
+    # If positional values are given, set to all
+    if [ -n "$1" ]; then
+        value="$*"
+    # If value is a file, set it as the value
+    elif [ -f "$value" ]; then
+        value="$(cat "$value")"
+    # If value is a pipe, set it as the value
+    elif [ -p /dev/stdin ]; then
+        value="$(cat -)"
+    fi
+fi
+
+# If value is empty, show short help
+if [ -z "$value" ]; then
+    shorthelp
+fi
+
+# Main function called to perform action
+main() {
+    # Do something
+    results=
+
+    # If results aren't empty, then print
+    # them to stdout
+    if [ -n "$results" ]; then
+        printf "\e[32m%s\e[0m\n" \
+            "$results"
+    fi
+}
+
+# If output is not empty, then save the output to the file
+if [ -n "$OUTPUT" ]; then
+    # Save output to file
+    main "$@" >"$OUTPUT"
+    echodebug "Output saved to $OUTPUT."
+else
+    # Print output to terminal
+    main "$@"
+fi
